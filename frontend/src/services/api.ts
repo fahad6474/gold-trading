@@ -1,7 +1,7 @@
 import axios from "axios";
 import type { BacktestResult, ExecuteResult, IndicatorSeries, OHLCVBar } from "../types";
 
-const BASE = "http://localhost:8000";
+const BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 const api = axios.create({ baseURL: BASE });
 
@@ -65,7 +65,8 @@ export const executeScript = async (payload: {
 };
 
 export const wsPrice = (symbol: string, onMessage: (data: unknown) => void): WebSocket => {
-  const ws = new WebSocket(`ws://localhost:8000/ws/price/${symbol}`);
+  const wsBase = BASE.replace(/^http/, "ws");
+  const ws = new WebSocket(`${wsBase}/ws/price/${symbol}`);
   ws.onmessage = (e) => onMessage(JSON.parse(e.data));
   return ws;
 };

@@ -12,7 +12,7 @@ from typing import Optional
 import pandas as pd
 import yfinance as yf
 
-CACHE_DIR = Path("/tmp/gold-trading-cache")
+CACHE_DIR = Path(os.getenv("CACHE_DIR", "/tmp/gold-trading-cache"))
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 # Supported symbols
