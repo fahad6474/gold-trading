@@ -31,7 +31,7 @@ TIMEFRAME_MAP = {
     "15m": "15m",
     "30m": "30m",
     "1h": "1h",
-    "4h": "1h",   # yfinance doesn't have 4h natively; we resample
+    "4h": "1h",  # yfinance doesn't have 4h natively; we resample
     "1d": "1d",
     "1w": "1wk",
 }
@@ -74,6 +74,14 @@ def _save_cache(cache_path: Path, df: pd.DataFrame) -> None:
         pass
 
 
+def _strip_timezone(index: pd.DatetimeIndex) -> pd.DatetimeIndex:
+    """Safely remove timezone info from a DatetimeIndex regardless of whether it is tz-aware."""
+    idx = pd.to_datetime(index)
+    if idx.tz is not None:
+        return idx.tz_convert("UTC").tz_localize(None)
+    return idx
+
+
 def fetch_ohlcv(
     symbol: str,
     timeframe: str = "1d",
@@ -81,8 +89,9 @@ def fetch_ohlcv(
     end: Optional[str] = None,
 ) -> pd.DataFrame:
     """
-    Fetch OHLCV data for a symbol. Returns a DataFrame with columns:
-    [open, high, low, close, volume] indexed by datetime.
+    Fetch OHLCV data for a symbol.
+    Returns a DataFrame with columns: [open, high, low, close, volume]
+    indexed by datetime.
     """
     if symbol not in SYMBOLS:
         raise ValueError(f"Unsupported symbol: {symbol}. Choose from: {list(SYMBOLS.keys())}")
@@ -97,14 +106,12 @@ def fetch_ohlcv(
 
     cache_path = CACHE_DIR / f"{_cache_key(symbol, timeframe, start, end)}.parquet"
     ttl = CACHE_TTL.get(timeframe, 60)
-
     cached = _load_cache(cache_path, ttl)
     if cached is not None:
         return cached
 
     interval = TIMEFRAME_MAP[timeframe]
     ticker = yf.Ticker(symbol)
-
     df = ticker.history(start=start, end=end, interval=interval, auto_adjust=True)
 
     if df.empty:
@@ -112,17 +119,28 @@ def fetch_ohlcv(
 
     # Standardize column names
     df = df.rename(columns={
-        "Open": "open", "High": "high", "Low": "low",
-        "Close": "close", "Volume": "volume"
+        "Open": "open",
+        "High": "high",
+        "Low": "low",
+        "Close": "close",
+        "Volume": "volume"
     })
     df = df[["open", "high", "low", "close", "volume"]]
-    df.index = pd.to_datetime(df.index).tz_localize(None)
+
+    # Strip timezone info safely — crypto tickers (BTC-USD, ETH-USD) return
+    # tz-aware UTC timestamps; futures (GC=F) may return tz-naive timestamps.
+    # tz_localize(None) raises an error on tz-aware indexes, so we use
+    # tz_convert(None) when the index already carries timezone info.
+    df.index = _strip_timezone(df.index)
 
     # Resample 4h from 1h data
     if timeframe == "4h":
         df = df.resample("4h").agg({
-            "open": "first", "high": "max", "low": "min",
-            "close": "last", "volume": "sum"
+            "open": "first",
+            "high": "max",
+            "low": "min",
+            "close": "last",
+            "volume": "sum"
         }).dropna()
 
     _save_cache(cache_path, df)
