@@ -275,9 +275,12 @@ export default function App() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-dark-400 border-t border-dark-500 px-3 py-1.5 flex flex-col sm:flex-row items-start sm:items-center justify-between text-xs text-gray-500 gap-0.5">
-        <span>Gold &amp; Crypto Backtest Dashboard</span>
-        <span>Data: Yahoo Finance &middot; Engine: vectorbt &middot; Charts: TradingView Lightweight Charts</span>
+      <footer className="bg-dark-400 border-t border-dark-500 px-3 py-2 flex flex-col sm:flex-row items-start sm:items-center justify-between text-xs text-gray-500 gap-1">
+        <div className="flex flex-col gap-0.5">
+          <span className="font-medium text-gray-400">Gold &amp; Crypto Backtest Dashboard</span>
+          <span>&copy; {new Date().getFullYear()} Fahad Mansoor. All rights reserved.</span>
+        </div>
+        <span className="text-right">Data: Yahoo Finance &middot; Engine: vectorbt &middot; Charts: TradingView Lightweight Charts</span>
       </footer>
     </div>
   );
